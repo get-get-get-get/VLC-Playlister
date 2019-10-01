@@ -130,15 +130,15 @@ def main():
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("directory",
                         help="Directory containing video files")
     parser.add_argument("-o", "--output",
                         default="VLC-Playlist",
+                        required=True,
                         help="Title of playlist")
-    parser.add_argument("-r", "--recursive",
-                        default=True,
-                        help="Recursively add files to playlist")
     parser.add_argument("-f", "--formats",
                         default="avi,mp4,mkv",
                         help="Comma-separated list of formats to include")
