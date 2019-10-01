@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from pathlib import PurePath
+import pathlib
 import sys
 import xml.etree.cElementTree as ET
 
@@ -54,9 +54,9 @@ def filter_files(files, extensions=None, includes=None, excludes=None):
 # Return list of files under folder (recursive)
 def get_files(directory):
     files = []
-    for basepath, __, filenames in os.walk(directory):
+    for basepath, __, filenames in os.walk(str(directory)):
         for file in filenames:
-            filepath = PurePath(os.path.join(basepath, file)).as_posix()
+            filepath = pathlib.PurePath(os.path.join(basepath, file)).as_posix()
             files.append(filepath)
 
     return files
@@ -99,12 +99,11 @@ def make_playlist(videos, title):
 
 
 def main():
+    
     # Check that folder given is actually a folder
-    if not os.path.isdir(args.directory):
-        sys.exit("Not a folder or directory!")
+    directory = pathlib.Path(args.directory)
 
-    target_directory = os.path.abspath(args.directory)
-    files = get_files(target_directory)
+    files = get_files(directory)
 
     # Cast filters to lowercase set
     extensions = set(args.formats.lower().split(","))
