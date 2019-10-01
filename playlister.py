@@ -100,10 +100,11 @@ def make_playlist(videos, title):
 
 def main():
     
-    # Check that folder given is actually a folder
+    # Instantiate paths as Path
     directory = pathlib.Path(args.directory)
+    output = pathlib.Path(args.output)
 
-    files = get_files(directory)
+    files = get_files(str(directory))
 
     # Cast filters to lowercase set
     extensions = set(args.formats.lower().split(","))
@@ -124,7 +125,7 @@ def main():
                             )
 
     # Make .xspf playlist
-    make_playlist(filtered, args.output)
+    make_playlist(filtered, str(output))
 
 
 if __name__ == '__main__':
