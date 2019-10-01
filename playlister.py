@@ -138,7 +138,6 @@ if __name__ == '__main__':
                         help="Directory containing video files")
     parser.add_argument("-o", "--output",
                         default="VLC-Playlist",
-                        required=True,
                         help="Title of playlist")
     parser.add_argument("-f", "--formats",
                         default="avi,mp4,mkv",
