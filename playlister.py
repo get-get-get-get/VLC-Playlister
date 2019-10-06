@@ -18,6 +18,8 @@ def filter_files(files, extensions=None, includes=None, excludes=None):
 
     filtered_files = []
 
+    global video_count
+
     for __ in range(len(files)):
         # Janky workaround to my janky logic TODO: unfuck
         # Flags a file for exclusion
