@@ -25,8 +25,11 @@ def filter_files(files, extensions=None, includes=None, excludes=None):
 
         # Exclude files w/ wrong extension
         if extensions:
-            if file[file.rindex(".") + 1:].lower() not in extensions:
-                censor = True
+            try: 
+                if file[file.rindex(".") + 1:].lower() not in extensions:
+                    censor = True
+            except ValueError:
+                pass
 
         # Exclude files with a given string
         if excludes and not censor:
