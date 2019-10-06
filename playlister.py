@@ -10,6 +10,8 @@ Creates VLC playlist (extension: '.xspf') of all videos of a given format within
 TODO: Figure out why it's ElementTree writes to a single line. It doesn't break the playlist, but it's ugly
 '''
 
+# Track how many videos in playlist
+video_count = 0 
 
 # Restrict files to in playlist. Not case sensitive
 def filter_files(files, extensions=None, includes=None, excludes=None):
@@ -50,6 +52,7 @@ def filter_files(files, extensions=None, includes=None, excludes=None):
         # Add files that have not been flagged for exclusion
         if not censor:
             filtered_files.append(file)
+            video_count += 1
 
     return filtered_files
 
@@ -129,6 +132,7 @@ def main():
 
     # Make .xspf playlist
     make_playlist(filtered, str(output))
+    print(f"{output} created with {video_count} videos.")
 
 
 if __name__ == '__main__':
