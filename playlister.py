@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import pathlib
+import random
 import sys
 import xml.etree.cElementTree as ET
 
@@ -12,12 +13,23 @@ TODO: Figure out why it's ElementTree writes to a single line. It doesn't break 
 
 
 # Restrict files to in playlist. Not case sensitive
-def filter_files(files, extensions=None, includes=None, excludes=None):
+def filter_files(files, randomize=False, max_len=None, extensions=None, includes=None, excludes=None):
 
     filtered_files = []
 
-    for __ in range(len(files)):
-        # Janky workaround to my janky logic TODO: unfuck
+    if max_len:
+        playlist_length = max_len
+    else:
+        playlist_length = len(files)
+    
+    if randomize:
+        random.seed()
+        # Certainly not guilty of unnecessary optimizing...
+        print(f"Shuffling {len(files)} potential videos...")
+        random.shuffle(files)
+        print("Done shuffling!")
+
+    for __ in range(playlist_length):
         # Flags a file for exclusion
         censor = False
 
@@ -122,6 +134,8 @@ def main():
 
     # Remove unwanted files
     filtered = filter_files(files,
+                            randomize=args.random,
+                            max_len=args.maximum,
                             extensions=extensions,
                             includes=includes,
                             excludes=excludes
@@ -164,12 +178,14 @@ if __name__ == '__main__':
         help="Comma-separated list of strings to require")
     parser.add_argument(
         "-m",
-        "--max",
+        "--maximum",
+        default=None,
         type=int,
         help="Maximum # of videos in playlist")
     parser.add_argument(
         "-r", 
         "--random",
+        default=False,
         action="store_true",
         help="Random videos, so if max=100 and there are 200 videos, they won't be uniform")
     args = parser.parse_args()
