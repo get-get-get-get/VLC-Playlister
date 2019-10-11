@@ -17,19 +17,7 @@ def filter_files(files, randomize=False, max_len=None, extensions=None, includes
 
     filtered_files = []
 
-    if max_len:
-        playlist_length = max_len
-    else:
-        playlist_length = len(files)
-    
-    if randomize:
-        random.seed()
-        # Certainly not guilty of unnecessary optimizing...
-        print(f"Shuffling {len(files)} potential videos...")
-        random.shuffle(files)
-        print("Done shuffling!")
-
-    for __ in range(playlist_length):
+    for __ in range(len(files)):
         # Flags a file for exclusion
         censor = False
 
@@ -62,6 +50,16 @@ def filter_files(files, randomize=False, max_len=None, extensions=None, includes
         # Add files that have not been flagged for exclusion
         if not censor:
             filtered_files.append(file)
+
+    if randomize:
+        random.seed()
+        # Certainly not guilty of unnecessary optimizing...
+        print(f"Shuffling {len(filtered_files)} potential videos...")
+        random.shuffle(filtered_files)
+        print("Done shuffling!")
+    
+    if max_len:
+        filtered_files = filtered_files[:max_len]
 
     return filtered_files
 
