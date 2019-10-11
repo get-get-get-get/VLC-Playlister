@@ -131,13 +131,14 @@ def main():
         excludes = None
 
     # Remove unwanted files
-    filtered = filter_files(files,
-                            randomize=args.random,
-                            max_len=args.maximum,
-                            extensions=extensions,
-                            includes=includes,
-                            excludes=excludes
-                            )
+    filtered = filter_files(
+        files,
+        randomize=args.random,
+        max_len=args.maximum,
+        extensions=extensions,
+        includes=includes,
+        excludes=excludes
+        )
 
     # Make .xspf playlist
     video_count = len(filtered)
@@ -153,39 +154,46 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "directory",
-        help="Directory containing video files")
+        help="Directory containing video files"
+    )
     parser.add_argument(
         "-o",
         "--output",
         default="VLC-Playlist",
-        help="Title of playlist")
+        help="Title of playlist"
+    )
     parser.add_argument(
         "-f",
         "--formats",
         default="avi,mp4,mkv",
-        help="Comma-separated list of formats to include")
+        help="Comma-separated list of formats to include"
+    )
     parser.add_argument(
         "-x",
         "--exclude",
         default=None,
-        help="Comma-separated list of strings to censor")
+        help="Comma-separated list of strings to censor"
+    )
     parser.add_argument(
         "-n",
         "--include",
         default=None,
-        help="Comma-separated list of strings to require")
+        help="Comma-separated list of strings to require"
+    )
     parser.add_argument(
         "-m",
         "--maximum",
         default=None,
         type=int,
-        help="Maximum # of videos in playlist")
+        help="Maximum # of videos in playlist"
+    )
     parser.add_argument(
         "-r", 
         "--random",
         default=False,
         action="store_true",
-        help="Random videos, so if max=100 and there are 200 videos, they won't be uniform")
+        help="Random videos, so if max=100 and there are 200 videos, they won't be uniform"
+    )
     args = parser.parse_args()
 
     main()
