@@ -165,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "-f",
         "--formats",
-        default="avi,mp4,mkv",
+        default="avi,mp4,mkv,webm",
         help="Comma-separated list of formats to include"
     )
     parser.add_argument(
