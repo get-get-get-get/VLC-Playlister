@@ -14,7 +14,6 @@ TODO: Figure out why it's ElementTree writes to a single line. It doesn't break 
 
 # Globals
 FORMATS = "avi,mp4,mkv"
-VERBOSITY = 0
 
 
 # Restrict files to in playlist. Not case sensitive
@@ -119,16 +118,14 @@ def make_playlist(videos, title):
 
 def main():
     
-    global VERBOSITY
-    if args.verbose:
-        VERBOSITY += 1
-
     # Instantiate paths as Path
     directory = pathlib.Path(args.directory)
     output = pathlib.Path(args.output)
 
     # Get all files
     files = get_files(str(directory))
+    if args.verbose:
+        print(f"Discovered {len(files)} files")
 
     # Parse acceptable formats
     global FORMATS
@@ -158,11 +155,10 @@ def main():
         excludes = None
 
     # Verbose output
-    if VERBOSITY > 0:
+    if args.verbose:
         print(f"EXTENSIONS: {extensions}")
         print(f"Including: {includes}")
         print(f"Excluding: {excludes}")
-        print(f"{len(files)} files in scope")
     
     # Remove unwanted files
     filtered = filter_files(
@@ -177,13 +173,12 @@ def main():
     # Make .xspf playlist
     video_count = len(filtered)
     make_playlist(filtered, str(output))
-    print(f"{output} created with {video_count} videos.")
+    print(f"{output}.xspf created with {video_count} videos.")
 
 
 if __name__ == '__main__':
     import argparse
 
-    global FORMATS
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -199,7 +194,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "-f",
         "--formats",
-        default=FORMATS,
         help="Comma-separated list of formats to include. Prepending '+' appends to defaults"
     )
     parser.add_argument(
