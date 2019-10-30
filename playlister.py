@@ -14,7 +14,7 @@ TODO: Figure out why it's ElementTree writes to a single line. It doesn't break 
 
 # Globals
 FORMATS = "avi,mp4,mkv"
-
+VERBOSITY = 0
 
 
 # Restrict files to in playlist. Not case sensitive
@@ -82,6 +82,7 @@ def get_files(directory):
 
 # Make playlist .xspf (aka xml)
 def make_playlist(videos, title):
+
     # Create 'playlist' as root Element
     playlist = ET.Element("playlist")
     playlist.set("xmlns", "http://xspf.org/ns/0/")
@@ -118,6 +119,10 @@ def make_playlist(videos, title):
 
 def main():
     
+    global VERBOSITY
+    if args.verbose:
+        VERBOSITY += 1
+
     # Instantiate paths as Path
     directory = pathlib.Path(args.directory)
     output = pathlib.Path(args.output)
@@ -140,24 +145,34 @@ def main():
     else:
         extensions = default_formats
 
+
     # Cast filters to lowercase set
     if args.include:
         includes = set(args.include.lower().split(","))
     else:
         includes = None
+        
     if args.exclude:
         excludes = set(args.exclude.lower().split(","))
     else:
         excludes = None
 
+    # Verbose output
+    if VERBOSITY > 0:
+        print(f"EXTENSIONS: {extensions}")
+        print(f"Including: {includes}")
+        print(f"Excluding: {excludes}")
+        print(f"{len(files)} files in scope")
+    
     # Remove unwanted files
-    filtered = filter_files(files,
-                            randomize=args.random,
-                            max_len=args.maximum,
-                            extensions=extensions,
-                            includes=includes,
-                            excludes=excludes
-                            )
+    filtered = filter_files(
+        files,
+        randomize=args.random,
+        max_len=args.maximum,
+        extensions=extensions,
+        includes=includes,
+        excludes=excludes
+    )
 
     # Make .xspf playlist
     video_count = len(filtered)
@@ -167,6 +182,8 @@ def main():
 
 if __name__ == '__main__':
     import argparse
+
+    global FORMATS
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -182,7 +199,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "-f",
         "--formats",
-        help="Comma-separated list of formats to include"
+        default=FORMATS,
+        help="Comma-separated list of formats to include. Prepending '+' appends to defaults"
     )
     parser.add_argument(
         "-x",
@@ -206,6 +224,12 @@ if __name__ == '__main__':
         default=False,
         action="store_true",
         help="Random videos, so if max=100 and there are 200 videos, they won't be uniform")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Verbose output"
+    )
     args = parser.parse_args()
 
     main()
