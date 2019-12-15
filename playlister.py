@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import pathlib
 import random
@@ -177,8 +178,6 @@ def main():
 
 
 if __name__ == '__main__':
-    import argparse
-
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
