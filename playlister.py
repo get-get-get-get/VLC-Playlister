@@ -4,6 +4,7 @@ import os
 import pathlib
 import random
 import sys
+import time
 import xml.etree.cElementTree as ET
 
 '''
@@ -18,9 +19,12 @@ FORMATS = "avi,mp4,mkv"
 
 
 # Restrict files to in playlist. Not case sensitive
-def filter_files(files, randomize=False, max_len=None, extensions=None, includes=None, excludes=None):
+def filter_files(files, randomize=False, max_len=None, extensions=None, includes=None, excludes=None, max_age=None):
 
     filtered_files = []
+
+    # Get current time (epoch seconds)
+    time_now = int(time.time())
 
     for __ in range(len(files)):
         # Flags a file for exclusion
@@ -51,6 +55,14 @@ def filter_files(files, randomize=False, max_len=None, extensions=None, includes
                     welcome = True
             if not welcome:
                 censor = True
+        
+        # Exclude files based on age
+        if max_age and not censor:
+            mtime = int(os.path.getmtime(file))
+            min_time = time_now - max_age
+            if not mtime >= min_time:
+                print(f"Censoring {file} based on age")
+                censor = True
 
         # Add files that have not been flagged for exclusion
         if not censor:
@@ -79,6 +91,25 @@ def get_files(directory):
 
     return files
 
+# Takes param formatted as [int][unit], where [unit] is of [h,d,w,m]. Returns as seconds
+def get_epoch_time(max_age):
+
+    unit = max_age[-1]
+    unit_count = int(max_age[:-1])
+
+    # Use unit to see how much to multiply unit_count by: 
+    if unit == "h":
+        multiplier = 3600
+    elif unit == "d":
+        multiplier = 86400
+    elif unit == "w":
+        multiplier = 604800
+    elif unit == "m":
+        multiplier = 18144000
+    
+    return unit_count * multiplier
+
+    
 
 # Make playlist .xspf (aka xml)
 def make_playlist(videos, title):
@@ -154,6 +185,12 @@ def main():
         excludes = set(args.exclude.lower().split(","))
     else:
         excludes = None
+    
+    # Convert args.latest to format workable w/ os.path.getmtime (seconds since epoch)
+    if args.max_age:
+        max_age = get_epoch_time(args.max_age)
+    else:
+        max_age = None
 
     # Verbose output
     if args.verbose:
@@ -165,10 +202,11 @@ def main():
     filtered = filter_files(
         files,
         randomize=args.random,
-        max_len=args.maximum,
+        max_len=args.max_len,
         extensions=extensions,
         includes=includes,
-        excludes=excludes
+        excludes=excludes,
+        max_age=max_age
     )
 
     # Make .xspf playlist
@@ -211,7 +249,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "-m",
-        "--maximum",
+        "--max-len",
         default=None,
         type=int,
         help="Maximum # of videos in playlist"
@@ -222,6 +260,11 @@ if __name__ == '__main__':
         default=False,
         action="store_true",
         help="Random videos, so if max=100 and there are 200 videos, they won't be uniform"
+    )
+    parser.add_argument(
+        "--max-age",
+        default=None,
+        help="Only videos this age or newer. Format as [int][unit], where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "-v",
