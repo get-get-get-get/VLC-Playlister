@@ -48,7 +48,7 @@ def filter_files(files, randomize=False, max_len=None, extensions=None, includes
                     break
 
         # Exclude files without a given string
-        if includes:
+        if includes and not censor:
             welcome = False     # TODO: this could probably be better
             for x in includes:
                 if x in file.lower():
@@ -61,7 +61,6 @@ def filter_files(files, randomize=False, max_len=None, extensions=None, includes
             mtime = int(os.path.getmtime(file))
             min_time = time_now - max_age
             if not mtime >= min_time:
-                print(f"Censoring {file} based on age")
                 censor = True
 
         # Add files that have not been flagged for exclusion
@@ -149,7 +148,7 @@ def make_playlist(videos, title):
     # Remove playlist if it already exists
     if os.path.exists(filename):
         os.remove(filename)
-        
+
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 
