@@ -184,12 +184,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "directory",
-        help="Directory containing video files")
+        help="Directory containing video files"
+    )
     parser.add_argument(
         "-o",
         "--output",
         default="VLC-Playlist",
-        help="Title of playlist")
+        help="Title of playlist"
+    )
     parser.add_argument(
         "-f",
         "--formats",
@@ -199,24 +201,28 @@ if __name__ == '__main__':
         "-x",
         "--exclude",
         default=None,
-        help="Comma-separated list of strings to censor")
+        help="Comma-separated list of strings to censor"
+    )
     parser.add_argument(
         "-n",
         "--include",
         default=None,
-        help="Comma-separated list of strings to require")
+        help="Comma-separated list of strings to require"
+    )
     parser.add_argument(
         "-m",
         "--maximum",
         default=None,
         type=int,
-        help="Maximum # of videos in playlist")
+        help="Maximum # of videos in playlist"
+    )
     parser.add_argument(
         "-r", 
         "--random",
         default=False,
         action="store_true",
-        help="Random videos, so if max=100 and there are 200 videos, they won't be uniform")
+        help="Random videos, so if max=100 and there are 200 videos, they won't be uniform"
+    )
     parser.add_argument(
         "-v",
         "--verbose",
