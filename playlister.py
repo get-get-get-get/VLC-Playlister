@@ -145,6 +145,11 @@ def make_playlist(videos, title):
 
     tree = ET.ElementTree(playlist)
     filename = f"{title}.xspf"
+
+    # Remove playlist if it already exists
+    if os.path.exists(filename):
+        os.remove(filename)
+        
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 
