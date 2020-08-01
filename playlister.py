@@ -85,7 +85,9 @@ class Playlist():
 
         if exclude_before:
             self.filter_exclude_before = parse_time_str_ago(exclude_before)         # Will return None if error parsing, which could be sneaky bug
+            print(f"Excluding videos modified before {self.filter_exclude_before}")
         if exclude_after:
+            print(f"Excluding videos modified after {self.filter_exclude_after}")
             self.filter_exclude_after = parse_time_str_ago(exclude_after)           # Will return None if error parsing, which could be sneaky bug
  
         
@@ -133,9 +135,6 @@ class Playlist():
 
             for fname in filenames:
                 self.unfiltered_files.append(pathlib.PurePath(os.path.abspath(os.path.join(root_dir, fname))).as_posix())
-            # Only include certain dirs (TODO)
-            if self.filter_include_dirs:
-                pass
         return
     
     def filter_files(self):
@@ -173,7 +172,7 @@ class Playlist():
         
         # Filter by file modification date
         mtime = os.path.getmtime(fpath_str)
-        mdate = datetime.datetime.strptime(mtime, "%a %b %d %H:%M:%S %Y")
+        mdate = datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
         if self.filter_exclude_before:
             if mdate < self.filter_exclude_before:
                 return False
@@ -277,7 +276,7 @@ def parse_time_str_ago(s):
             __ = int(c)
             int_buf += c
         except ValueError:
-            if not ago.get(c, False):
+            if ago.get(c, False) is False:
                 return None                 # TODO: return error
             if int_buf == "":
                 amt = 1
@@ -303,8 +302,7 @@ def main():
     # Instantiate 
     directory = args.directory
     output = args.output
-    if args.formats:
-        formats = args.formats
+    formats = args.formats
 
     playlist = Playlist(directory, output, include_formats=formats)
 
