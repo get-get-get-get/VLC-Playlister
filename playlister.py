@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 import os
 import pathlib
 import random
@@ -14,209 +15,316 @@ TODO: Figure out why it's ElementTree writes to a single line. It doesn't break 
 '''
 
 
-# Globals
-FORMATS = "avi,mp4,mkv"
+class Playlist():
+
+    default_formats = [".avi",".mp4",".mkv"]
+    playlist_extension = ".xspf"
+    recursive = True
+
+    filter_exclude_terms = None
+    filter_exclude_dirs = None
+    filter_exclude_formats = None
+    filter_include_terms = None
+    filter_include_dirs = None
+    allowed_formats = None
+
+    # Filter by datetime.datetime
+    filter_exclude_before = None
+    filter_exclude_after = None
 
 
-# Restrict files to in playlist. Not case sensitive
-def filter_files(files, randomize=False, max_len=None, extensions=None, includes=None, excludes=None, max_age=None):
+    def __init__(self, dir, dest_file, recursive=True, include_formats=None):
 
-    filtered_files = []
+        if not os.path.isdir(dir):
+            return None                 # TODO: make proper error
+        if os.path.isdir(dest_file):
+            return None                 # TODO: make proper error
+        self.root_dir = pathlib.Path(dir).resolve()
+        self.dest_path = pathlib.Path(dest_file).resolve()
+        if self.dest_path.suffix != '':
+            self.playlist_extension = self.dest_path.suffix
 
-    # Get current time (epoch seconds)
-    time_now = int(time.time())
-
-    for __ in range(len(files)):
-        # Flags a file for exclusion
-        censor = False
-
-        file = files.pop()
-
-        # Exclude files w/ wrong extension
-        if extensions:
-            try: 
-                if file[file.rindex(".") + 1:].lower() not in extensions:
-                    censor = True
-            except ValueError:
-                pass
-
-        # Exclude files with a given string
-        if excludes and not censor:
-            for x in excludes:
-                if x in file.lower():
-                    censor = True
-                    break
-
-        # Exclude files without a given string
-        if includes and not censor:
-            welcome = False     # TODO: this could probably be better
-            for x in includes:
-                if x in file.lower():
-                    welcome = True
-            if not welcome:
-                censor = True
+        if include_formats:
+            if isinstance(include_formats, str):
+                self.allowed_formats = set("." + fmt.strip().lower().lstrip(".") for fmt in include_formats.split(","))
+                if include_formats.startswith("+"):
+                    for fmt in self.default_formats:
+                        self.allowed_formats.add(fmt)
+            else:
+                self.allowed_formats = set(fmt.lower() for fmt in include_formats)
+        else:
+            self.allowed_formats = set(self.default_formats)
         
-        # Exclude files based on age
-        if max_age and not censor:
-            mtime = int(os.path.getmtime(file))
-            min_time = time_now - max_age
-            if not mtime >= min_time:
-                censor = True
+        self.unfiltered_files = []
+        self.playlist_files = []
 
-        # Add files that have not been flagged for exclusion
-        if not censor:
-            filtered_files.append(file)
 
-    if randomize:
-        random.seed()
-        # Certainly not guilty of unnecessary optimizing...
-        print(f"Shuffling {len(filtered_files)} potential videos...")
-        random.shuffle(filtered_files)
-        print("Done shuffling!")
+    def add_filters(self, exclude_terms=None, exclude_dirs=None, exclude_formats=None, exclude_before=None, exclude_after=None,
+    include_terms=None, include_dirs=None, include_formats=None):
+        
+        if exclude_terms:
+            if not self.filter_exclude_terms:
+                self.filter_exclude_terms = parse_to_list(exclude_terms)
+            else:
+                for term in parse_to_list(exclude_terms):
+                    self.filter_exclude_terms.append(term)
+
+        if exclude_dirs:
+            if not self.filter_exclude_dirs:
+                self.filter_exclude_dirs = set(pathlib.Path(p).resolve() for p in parse_to_list(exclude_dirs))
+            else:
+                for dir in parse_to_list(exclude_dirs):
+                    self.filter_exclude_dirs.add(dir)
+
+        if exclude_formats:
+            if not self.filter_exclude_formats:
+                self.filter_exclude_formats = set("." + fmt.lstrip(".") for fmt in parse_to_list(exclude_formats))
+            else:
+                for fmt in parse_to_list(exclude_formats):
+                    self.filter_exclude_formats.add(fmt)
+
+        if exclude_before:
+            self.filter_exclude_before = parse_time_str_ago(exclude_before)         # Will return None if error parsing, which could be sneaky bug
+        if exclude_after:
+            self.filter_exclude_after = parse_time_str_ago(exclude_after)           # Will return None if error parsing, which could be sneaky bug
+ 
+        
+        if include_terms:
+            if not self.filter_include_terms:
+                self.filter_include_terms = parse_to_list(include_terms)
+            else:
+                for term in parse_to_list(include_terms):
+                    self.filter_include_terms.append(term)
+
+        if include_dirs:
+            if not self.filter_include_dirs:
+                self.filter_include_dirs = [pathlib.Path(p).resolve() for p in parse_to_list(include_dirs)]
+            else:
+                for dir in parse_to_list(include_dirs):
+                    self.filter_include_dirs.append(dir)
+        if include_formats:
+            if not self.allowed_formats:
+                self.allowed_formats = set(parse_to_list(include_formats))
+            else:
+                for fmt in parse_to_list(include_formats):
+                    self.allowed_formats.add(fmt)
+
     
-    if max_len:
-        filtered_files = filtered_files[:max_len]
+    def get_all_files(self):
+        '''
+        Gets all filepaths within directories that are not filtered
 
-    return filtered_files
-
-
-# Return list of files under folder (recursive)
-def get_files(directory):
-    files = []
-    for basepath, __, filenames in os.walk(str(directory)):
-        for file in filenames:
-            filepath = pathlib.PurePath(os.path.join(basepath, file)).as_posix()
-            files.append(filepath)
-
-    return files
-
-# Takes param formatted as [int][unit], where [unit] is of [h,d,w,m]. Returns as seconds
-def get_epoch_time(max_age):
-
-    unit = max_age[-1]
-    unit_count = int(max_age[:-1])
-
-    # Use unit to see how much to multiply unit_count by: 
-    if unit == "h":
-        multiplier = 3600
-    elif unit == "d":
-        multiplier = 86400
-    elif unit == "w":
-        multiplier = 604800
-    elif unit == "m":
-        multiplier = 18144000
+        NOTE: doesn't consider recursive option, and will always be recursive
+        '''
     
-    return unit_count * multiplier
+        for root_dir, dirs, filenames in os.walk(str(self.root_dir)):
+            # Don't traverse excluded dirs
+            if self.filter_exclude_dirs:
+                dirs[:] = [d for d in dirs if pathlib.Path(d).resolve() not in self.filter_exclude_dirs]
+            # Maybe don't do it this way
+            if self.filter_include_dirs:
+                allowed = []
+                for d in dirs:
+                    d_pure = pathlib.Path(os.path.join(root_dir, d)).resolve()
+                    for inc_dir in self.filter_include_dirs:
+                        if inc_dir == d_pure or inc_dir in d_pure.parents:
+                            allowed.append(d)
+                            break
 
+            for fname in filenames:
+                self.unfiltered_files.append(pathlib.PurePath(os.path.abspath(os.path.join(root_dir, fname))).as_posix())
+            # Only include certain dirs (TODO)
+            if self.filter_include_dirs:
+                pass
+        return
     
+    def filter_files(self):
+        for f in self.unfiltered_files:
+            if self.file_is_allowed(f):
+                self.playlist_files.append(f)
 
-# Make playlist .xspf (aka xml)
-def make_playlist(videos, title):
+    def file_is_allowed(self, f):
+        ''' 
+        returns True if file passes all filters
+        '''
 
-    # Create 'playlist' as root Element
-    playlist = ET.Element("playlist")
-    playlist.set("xmlns", "http://xspf.org/ns/0/")
-    playlist.set("xmlns:vlc", "http://www.videolan.org/vlc/playlist/ns/0/")
-    playlist.set("version", "1")
+        fpath = pathlib.PurePath(f)
 
-    # Set title
-    ET.SubElement(playlist, "title").text = title
+        # Filter by file extension
+        if fpath.suffix not in self.allowed_formats:
+            return False
+        if self.filter_exclude_formats:
+            if fpath.suffix in self.filter_exclude_formats:
+                return False
 
-    # Create tracklist
-    tracklist = ET.SubElement(playlist, "trackList")
+        # Filter by key terms
+        fpath_str = str(fpath)
+        if self.filter_exclude_terms:
+            for term in self.filter_exclude_terms:
+                if term in fpath_str:
+                    return False
+        if self.filter_include_terms:
+            included = False
+            for term in self.filter_include_terms:
+                if term in fpath_str:
+                    included = True
+            if not included:
+                return False
+        
+        # Filter by file modification date
+        mtime = os.path.getmtime(fpath_str)
+        mdate = datetime.datetime.strptime(mtime, "%a %b %d %H:%M:%S %Y")
+        if self.filter_exclude_before:
+            if mdate < self.filter_exclude_before:
+                return False
+        if self.filter_exclude_after:
+            if mdate > self.filter_exclude_after:
+                return False
+        
+        return True
 
-    # Add tracks to tracklist
-    file_format = "file:///{}"
-    for i, name in enumerate(videos):
-        track = ET.SubElement(tracklist, "track")
-        ET.SubElement(track, "location").text = file_format.format(name)
-        ET.SubElement(track, "duration")
+    def make(self):
+        self.get_all_files()
+        self.filter_files()
+        self.make_playlist()
 
-        extension = ET.SubElement(track, "extension")
-        extension.set("application", "http://www.videolan.org/vlc/playlist/0")
-        ET.SubElement(extension, "vlc:id").text = str(i)
+    def make_playlist(self):
 
-    # Last element
-    ext = ET.SubElement(playlist, "extension")
-    ext.set("application", "http://www.videolan.org/vlc/playlist/0")
-    for i in range(len(videos)):
-        ET.SubElement(ext, "vlc:item").set("tid", str(i))
+        # Create 'playlist' as root Element
+        playlist = ET.Element("playlist")
+        playlist.set("xmlns", "http://xspf.org/ns/0/")
+        playlist.set("xmlns:vlc", "http://www.videolan.org/vlc/playlist/ns/0/")
+        playlist.set("version", "1")
 
-    tree = ET.ElementTree(playlist)
-    filename = f"{title}.xspf"
+        # Set title
+        title = str(self.dest_path).rstrip(self.dest_path.suffix)
+        ET.SubElement(playlist, "title").text = title
 
-    # Remove playlist if it already exists
-    if os.path.exists(filename):
-        os.remove(filename)
+        # Create tracklist
+        tracklist = ET.SubElement(playlist, "trackList")
 
-    tree.write(filename, encoding="utf-8", xml_declaration=True)
+        # Add tracks to tracklist
+        file_format = "file:///{}"
+        for i, name in enumerate(self.playlist_files):
+            track = ET.SubElement(tracklist, "track")
+            ET.SubElement(track, "location").text = file_format.format(name)
+            ET.SubElement(track, "duration")
+
+            extension = ET.SubElement(track, "extension")
+            extension.set("application", "http://www.videolan.org/vlc/playlist/0")
+            ET.SubElement(extension, "vlc:id").text = str(i)
+
+        # Last element
+        ext = ET.SubElement(playlist, "extension")
+        ext.set("application", "http://www.videolan.org/vlc/playlist/0")
+        for i in range(len(self.playlist_files)):
+            ET.SubElement(ext, "vlc:item").set("tid", str(i))
+
+        tree = ET.ElementTree(playlist)
+        filename = f"{title}{self.playlist_extension}"
+
+        # Remove playlist if it already exists
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        tree.write(filename, encoding="utf-8", xml_declaration=True)
+
+
+def parse_to_list(obj, normalize_case=True):
+    '''
+    Take object that's either a list already or a comma-separated string, and return a list. Strip white spaces
+    '''
+    
+    if isinstance(obj, str):
+        if not normalize_case:
+            parsed = [x.strip() for x in obj.split(",")]
+        else:
+            parsed = [x.strip().lower() for x in obj.split(",")]
+        return parsed
+    
+    if not normalize_case:
+        parsed = list(obj)
+    else:
+        parsed = [x.lower() for x in obj]
+    return parsed
+
+
+def parse_time_str_ago(s):
+    '''
+    Takes some string formatted like "2w5d" and returns a datetime.datetime object representing the time that many units ago (e.g. 2 weeks and 5 days ago).
+
+    m = minutes
+    h = hours
+    d = days
+    w = weeks
+    y = years
+
+    Other letters cause error. If nothing precedes letter that can be cast as int, it will be 1 (e.g. "2dy" is 2 days 1 year. "www" is 3 weeks)
+    Not case sensitive
+    '''
+
+    ago = {
+        "m": 0,
+        "h": 0,
+        "d": 0,
+        "w": 0,
+        "y": 0,
+    }
+
+    int_buf = ""
+    for c in s.lower():
+        try:
+            __ = int(c)
+            int_buf += c
+        except ValueError:
+            if not ago.get(c, False):
+                return None                 # TODO: return error
+            if int_buf == "":
+                amt = 1
+            else:
+                amt = int(int_buf)
+                int_buf = ""
+            ago[c] += amt
+
+    # datetime.datetime objects don't do "years" so multiply days by 365 for each year
+    ago["d"] += 365 * ago["y"]
+    ago_date = datetime.datetime.now() - datetime.timedelta(
+        minutes=ago["m"],
+        hours=ago["h"],
+        days=ago["d"],
+        weeks=ago["w"],
+    )
+
+    return ago_date
 
 
 def main():
     
-    # Instantiate paths as Path
-    directory = pathlib.Path(args.directory)
-    output = pathlib.Path(args.output)
-
-    # Get all files
-    files = get_files(str(directory))
-    if args.verbose:
-        print(f"Discovered {len(files)} files")
-
-    # Parse acceptable formats
-    global FORMATS
-    default_formats = set(FORMATS.lower().split(","))
-
+    # Instantiate 
+    directory = args.directory
+    output = args.output
     if args.formats:
-        # Allow appending to default formats w/ '+' operator
-        if args.formats.startswith("+"):
-            extensions = args.formats.lstrip("+")
-            extensions = set(extensions.lower().split(","))
-            extensions = extensions.union(default_formats)
-        else:
-            extensions = args.formats.lower().split(",")
-    else:
-        extensions = default_formats
+        formats = args.formats
 
+    playlist = Playlist(directory, output, include_formats=formats)
 
-    # Cast filters to lowercase set
-    if args.include:
-        includes = set(args.include.lower().split(","))
-    else:
-        includes = None
-        
-    if args.exclude:
-        excludes = set(args.exclude.lower().split(","))
-    else:
-        excludes = None
-    
-    # Convert args.latest to format workable w/ os.path.getmtime (seconds since epoch)
-    if args.max_age:
-        max_age = get_epoch_time(args.max_age)
-    else:
-        max_age = None
+    playlist.add_filters(
+        exclude_terms=args.exclude,
+        exclude_dirs=None,
+        exclude_formats=args.exclude_formats,
+        exclude_before=args.exclude_before,
 
-    # Verbose output
-    if args.verbose:
-        print(f"EXTENSIONS: {extensions}")
-        print(f"Including: {includes}")
-        print(f"Excluding: {excludes}")
-    
-    # Remove unwanted files
-    filtered = filter_files(
-        files,
-        randomize=args.random,
-        max_len=args.max_len,
-        extensions=extensions,
-        includes=includes,
-        excludes=excludes,
-        max_age=max_age
+        include_terms=args.include,
+        include_dirs=None,
+        include_formats=formats    
     )
+    
+    playlist.make()
+
 
     # Make .xspf playlist
-    video_count = len(filtered)
-    make_playlist(filtered, str(output))
-    print(f"{output}.xspf created with {video_count} videos.")
+    video_count = len(playlist.playlist_files)
+    print(f"{playlist.dest_path} created with {video_count} videos.")
 
 
 if __name__ == '__main__':
@@ -231,12 +339,13 @@ if __name__ == '__main__':
     parser.add_argument(
         "-o",
         "--output",
-        default="VLC-Playlist",
-        help="Title of playlist"
+        default="untitled-playlist",
+        help="Title of playlist / Path to playlist"
     )
     parser.add_argument(
         "-f",
         "--formats",
+        default=None,
         help="Comma-separated list of formats to include. Prepending '+' appends to defaults"
     )
     parser.add_argument(
@@ -266,9 +375,19 @@ if __name__ == '__main__':
         help="Random videos, so if max=100 and there are 200 videos, they won't be uniform"
     )
     parser.add_argument(
-        "--max-age",
+        "--exclude-before",
         default=None,
-        help="Only videos this age or newer. Format as [int][unit], where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Exclude videos modified before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+    )
+    parser.add_argument(
+        "--exclude-after",
+        default=None,
+        help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+    )
+    parser.add_argument(
+        "--exclude-formats",
+        default=None,
+        help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "-v",
