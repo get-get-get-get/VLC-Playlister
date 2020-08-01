@@ -50,8 +50,10 @@ class Playlist():
                 if include_formats.startswith("+"):
                     for fmt in self.default_formats:
                         self.allowed_formats.add(fmt)
-            else:
+            elif isinstance(include_formats, list):
                 self.allowed_formats = set(fmt.lower() for fmt in include_formats)
+            else:
+                return None
         else:
             self.allowed_formats = set(self.default_formats)
         
@@ -85,9 +87,7 @@ class Playlist():
 
         if exclude_before:
             self.filter_exclude_before = parse_time_str_ago(exclude_before)         # Will return None if error parsing, which could be sneaky bug
-            print(f"Excluding videos modified before {self.filter_exclude_before}")
         if exclude_after:
-            print(f"Excluding videos modified after {self.filter_exclude_after}")
             self.filter_exclude_after = parse_time_str_ago(exclude_after)           # Will return None if error parsing, which could be sneaky bug
  
         
@@ -240,6 +240,8 @@ def parse_to_list(obj, normalize_case=True):
         else:
             parsed = [x.strip().lower() for x in obj.split(",")]
         return parsed
+    elif not isinstance(obj, list):
+        return None
     
     if not normalize_case:
         parsed = list(obj)
