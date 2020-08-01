@@ -289,6 +289,7 @@ def parse_time_str_ago(s):
 
     # datetime.datetime objects don't do "years" so multiply days by 365 for each year
     ago["d"] += 365 * ago["y"]
+    
     ago_date = datetime.datetime.now() - datetime.timedelta(
         minutes=ago["m"],
         hours=ago["h"],
@@ -398,4 +399,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main()
-
