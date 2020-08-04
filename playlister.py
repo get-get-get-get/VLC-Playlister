@@ -309,7 +309,7 @@ def parse_args():
     parser.add_argument(
         "-f",
         "--formats",
-        default=None,
+        type=comma_list,
         help="Comma-separated list of formats to include. Prepending '+' appends to defaults"
     )
     parser.add_argument(
@@ -321,8 +321,7 @@ def parse_args():
     parser.add_argument(
         "-n",
         "--include",
-        default=None,
-        action="append",
+        type=comma_list,
         help="Comma-separated list of strings to require"
     )
     parser.add_argument(
@@ -372,13 +371,13 @@ def main():
 
     if args.formats:
         formats = args.formats
-        if formats[0] == "+":
-            formats = Playlist.default_formats + formats[1:]
+        if formats[0].startswith("+"):
+            formats[0] = formats[0].lstrip("+")
+            formats = Playlist.default_formats + formats
+        formats = ["." + fmt.lstrip(".") for fmt in formats]   
     else:
         formats = None
     playlist = Playlist(directory, output, include_formats=formats)
-
-    
 
     playlist.add_filters(
         exclude_terms=args.exclude,
