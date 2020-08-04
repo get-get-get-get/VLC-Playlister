@@ -163,15 +163,16 @@ class Playlist():
                 return False
         
         # Filter by file modification date
-        mtime = os.path.getmtime(fpath_str)
-        mdate = datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
-        if self.filter_exclude_before:
-            if mdate < self.filter_exclude_before:
-                return False
-        if self.filter_exclude_after:
-            if mdate > self.filter_exclude_after:
-                return False
-        
+        if self.filter_exclude_before or self.filter_exclude_after:
+            mtime = os.path.getmtime(fpath_str)
+            mdate = datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
+            if self.filter_exclude_before:
+                if mdate < self.filter_exclude_before:
+                    return False
+            if self.filter_exclude_after:
+                if mdate > self.filter_exclude_after:
+                    return False
+                            
         return True
 
     def make(self):
