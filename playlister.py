@@ -9,9 +9,7 @@ import time
 import xml.etree.cElementTree as ET
 
 '''
-Creates VLC playlist (extension: '.xspf') of all videos of a given format within a directory/folder (recursive)
-
-TODO: Figure out why it's ElementTree writes to a single line. It doesn't break the playlist, but it's ugly
+Creates VLC playlists
 '''
 
 
@@ -162,17 +160,16 @@ class Playlist():
             if not included:
                 return False
         
-        # Filter by file modification date
+        # Filter by file creation date
         if self.filter_exclude_before or self.filter_exclude_after:
-            mtime = os.path.getmtime(fpath_str)
-            mdate = datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
+            created = get_file_cdate(fpath_str)
             if self.filter_exclude_before:
-                if mdate < self.filter_exclude_before:
+                if created < self.filter_exclude_before:
                     return False
             if self.filter_exclude_after:
-                if mdate > self.filter_exclude_after:
+                if created > self.filter_exclude_after:
                     return False
-                            
+
         return True
 
     def make(self):
@@ -240,6 +237,18 @@ def comma_list(s):
 
 def comma_list_cased(s):
     return parse_arg_to_list(s, normalize_case=True)
+
+
+# datetime of last file modification
+def get_file_mdate(fpath):
+        mtime = os.path.getmtime(fpath)
+        return datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
+
+
+# datetime of file creation
+def get_file_cdate(fpath):
+        ctime = os.path.getctime(fpath)
+        return datetime.datetime.strptime(time.ctime(ctime), "%a %b %d %H:%M:%S %Y")
 
 def parse_time_str_ago(s):
     '''
