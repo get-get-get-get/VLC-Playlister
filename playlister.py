@@ -33,7 +33,7 @@ class Playlist():
     filter_exclude_after = None
 
 
-    def __init__(self, dir, dest_file, recursive=True, include_formats=None):
+    def __init__(self, dir, dest_file, include_formats=None, recursive=True):
 
         if not os.path.isdir(dir):
             return None                 # TODO: make proper error
@@ -45,15 +45,7 @@ class Playlist():
             self.playlist_extension = self.dest_path.suffix
 
         if include_formats:
-            if isinstance(include_formats, str):
-                self.allowed_formats = set("." + fmt.strip().lower().lstrip(".") for fmt in include_formats.split(","))
-                if include_formats.startswith("+"):
-                    for fmt in self.default_formats:
-                        self.allowed_formats.add(fmt)
-            elif isinstance(include_formats, list):
-                self.allowed_formats = set(fmt.lower() for fmt in include_formats)
-            else:
-                return None
+            self.allowed_formats = set(include_formats)
         else:
             self.allowed_formats = set(self.default_formats)
         
@@ -66,23 +58,23 @@ class Playlist():
         
         if exclude_terms:
             if not self.filter_exclude_terms:
-                self.filter_exclude_terms = parse_to_list(exclude_terms)
+                self.filter_exclude_terms = exclude_terms
             else:
-                for term in parse_to_list(exclude_terms):
+                for term in exclude_terms:
                     self.filter_exclude_terms.append(term)
 
         if exclude_dirs:
             if not self.filter_exclude_dirs:
-                self.filter_exclude_dirs = set(pathlib.Path(p).resolve() for p in parse_to_list(exclude_dirs))
+                self.filter_exclude_dirs = set(pathlib.Path(p).resolve() for p in parse_arg_to_list(exclude_dirs))
             else:
-                for dir in parse_to_list(exclude_dirs):
+                for dir in parse_arg_to_list(exclude_dirs):
                     self.filter_exclude_dirs.add(dir)
 
         if exclude_formats:
             if not self.filter_exclude_formats:
-                self.filter_exclude_formats = set("." + fmt.lstrip(".") for fmt in parse_to_list(exclude_formats))
+                self.filter_exclude_formats = set("." + fmt.lstrip(".") for fmt in exclude_formats)
             else:
-                for fmt in parse_to_list(exclude_formats):
+                for fmt in parse_arg_to_list(exclude_formats):
                     self.filter_exclude_formats.add(fmt)
 
         if exclude_before:
@@ -93,22 +85,22 @@ class Playlist():
         
         if include_terms:
             if not self.filter_include_terms:
-                self.filter_include_terms = parse_to_list(include_terms)
+                self.filter_include_terms = include_terms
             else:
-                for term in parse_to_list(include_terms):
+                for term in include_terms:
                     self.filter_include_terms.append(term)
 
         if include_dirs:
             if not self.filter_include_dirs:
-                self.filter_include_dirs = [pathlib.Path(p).resolve() for p in parse_to_list(include_dirs)]
+                self.filter_include_dirs = [pathlib.Path(p).resolve() for p in include_dirs]
             else:
-                for dir in parse_to_list(include_dirs):
-                    self.filter_include_dirs.append(dir)
+                for d in include_dirs:
+                    self.filter_include_dirs.append(pathlib.Path(d).resolve())
         if include_formats:
             if not self.allowed_formats:
-                self.allowed_formats = set(parse_to_list(include_formats))
+                self.allowed_formats = set(include_formats)
             else:
-                for fmt in parse_to_list(include_formats):
+                for fmt in include_formats:
                     self.allowed_formats.add(fmt)
 
     
@@ -160,7 +152,7 @@ class Playlist():
         fpath_str = str(fpath)
         if self.filter_exclude_terms:
             for term in self.filter_exclude_terms:
-                if term in fpath_str:
+                if term in fpath_str.lower():
                     return False
         if self.filter_include_terms:
             included = False
@@ -229,26 +221,24 @@ class Playlist():
         tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 
-def parse_to_list(obj, normalize_case=True):
+def parse_arg_to_list(arg, normalize_case=True):
     '''
-    Take object that's either a list already or a comma-separated string, and return a list. Strip white spaces
+    Split string by commas, for args
     '''
-    
-    if isinstance(obj, str):
-        if not normalize_case:
-            parsed = [x.strip() for x in obj.split(",")]
-        else:
-            parsed = [x.strip().lower() for x in obj.split(",")]
-        return parsed
-    elif not isinstance(obj, list):
+    if not arg:
         return None
-    
+
     if not normalize_case:
-        parsed = list(obj)
+        parsed = [x.strip() for x in arg.split(",") if x != ""]
     else:
-        parsed = [x.lower() for x in obj]
+        parsed = [x.strip().lower() for x in arg.split(",")]
     return parsed
 
+def comma_list(s):
+    return parse_arg_to_list(s, normalize_case=False)
+
+def comma_list_cased(s):
+    return parse_arg_to_list(s, normalize_case=True)
 
 def parse_time_str_ago(s):
     '''
@@ -300,35 +290,8 @@ def parse_time_str_ago(s):
     return ago_date
 
 
-def main():
-    
-    # Instantiate 
-    directory = args.directory
-    output = args.output
-    formats = args.formats
+def parse_args():
 
-    playlist = Playlist(directory, output, include_formats=formats)
-
-    playlist.add_filters(
-        exclude_terms=args.exclude,
-        exclude_dirs=None,
-        exclude_formats=args.exclude_formats,
-        exclude_before=args.exclude_before,
-
-        include_terms=args.include,
-        include_dirs=None,
-        include_formats=formats    
-    )
-    
-    playlist.make()
-
-
-    # Make .xspf playlist
-    video_count = len(playlist.playlist_files)
-    print(f"{playlist.dest_path} created with {video_count} videos.")
-
-
-if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -352,13 +315,14 @@ if __name__ == '__main__':
     parser.add_argument(
         "-x",
         "--exclude",
-        default=None,
+        type=comma_list,
         help="Comma-separated list of strings to censor"
     )
     parser.add_argument(
         "-n",
         "--include",
         default=None,
+        action="append",
         help="Comma-separated list of strings to require"
     )
     parser.add_argument(
@@ -396,6 +360,44 @@ if __name__ == '__main__':
         action="store_true",
         help="Verbose output"
     )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+    
+    args = parse_args()
+
+    # Instantiate 
+    directory = args.directory
+    output = args.output
+
+    if args.formats:
+        formats = args.formats
+        if formats[0] == "+":
+            formats = Playlist.default_formats + formats[1:]
+    else:
+        formats = None
+    playlist = Playlist(directory, output, include_formats=formats)
+
+    
+
+    playlist.add_filters(
+        exclude_terms=args.exclude,
+        exclude_dirs=None,
+        exclude_formats=args.exclude_formats,
+        exclude_before=args.exclude_before,
+
+        include_terms=args.include,
+        include_dirs=None,    
+    )
+    
+    playlist.make()
+
+
+    # Make .xspf playlist
+    video_count = len(playlist.playlist_files)
+    print(f"{playlist.dest_path} created with {video_count} videos.")
+
+
+if __name__ == '__main__':
 
     main()
