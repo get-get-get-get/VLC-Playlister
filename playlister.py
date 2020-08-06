@@ -63,16 +63,16 @@ class Playlist():
 
         if exclude_dirs:
             if not self.filter_exclude_dirs:
-                self.filter_exclude_dirs = set(pathlib.Path(p).resolve() for p in parse_arg_to_list(exclude_dirs))
+                self.filter_exclude_dirs = set(pathlib.Path(p).resolve() for p in parse_comma_list(exclude_dirs))
             else:
-                for dir in parse_arg_to_list(exclude_dirs):
+                for dir in parse_comma_list(exclude_dirs):
                     self.filter_exclude_dirs.add(dir)
 
         if exclude_formats:
             if not self.filter_exclude_formats:
                 self.filter_exclude_formats = set("." + fmt.lstrip(".") for fmt in exclude_formats)
             else:
-                for fmt in parse_arg_to_list(exclude_formats):
+                for fmt in parse_comma_list(exclude_formats):
                     self.filter_exclude_formats.add(fmt)
         
         if include_terms:
@@ -213,7 +213,7 @@ class Playlist():
         tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 
-def parse_arg_to_list(arg, normalize_case=True):
+def parse_comma_list(arg, normalize_case=True):
     '''
     Split string by commas, for args
     '''
@@ -227,10 +227,10 @@ def parse_arg_to_list(arg, normalize_case=True):
     return parsed
 
 def comma_list(s):
-    return parse_arg_to_list(s, normalize_case=False)
+    return parse_comma_list(s, normalize_case=False)
 
 def comma_list_cased(s):
-    return parse_arg_to_list(s, normalize_case=True)
+    return parse_comma_list(s, normalize_case=True)
 
 
 # datetime of last file modification
