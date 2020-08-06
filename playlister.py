@@ -18,6 +18,8 @@ class Playlist():
     default_formats = [".avi",".mp4",".mkv"]
     playlist_extension = ".xspf"
     recursive = True
+    max_length = None
+    randomize = False
 
     filter_exclude_terms = None
     filter_exclude_dirs = None
@@ -131,6 +133,13 @@ class Playlist():
         for f in self.unfiltered_files:
             if self.file_is_allowed(f):
                 self.playlist_files.append(f)
+        
+        if self.randomize:
+            random.seed()
+            random.shuffle(self.playlist_files)
+        
+        if self.max_length:
+            self.playlist_files = self.playlist_files[:self.max_length]
 
     def file_is_allowed(self, f):
         ''' 
@@ -337,8 +346,8 @@ def parse_args():
     )
     parser.add_argument(
         "-m",
-        "--max-len",
-        default=None,
+        "--max-length",
+        default=0,
         type=int,
         help="Maximum # of videos in playlist"
     )
@@ -404,6 +413,9 @@ def main():
         include_terms=args.include,
         include_dirs=None,    
     )
+
+    playlist.randomize = args.random
+    playlist.max_length = args.max_length
     
     playlist.make()
 
