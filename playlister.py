@@ -196,7 +196,7 @@ class Playlist():
 
         # Set title
         title = str(self.dest_path).rstrip(self.dest_path.suffix)
-        ET.SubElement(playlist, "title").text = title
+        ET.SubElement(playlist, "Title").text = title
 
         # Create tracklist
         tracklist = ET.SubElement(playlist, "trackList")
@@ -204,8 +204,11 @@ class Playlist():
         # Add tracks to tracklist
         file_format = "file:///{}"
         for i, name in enumerate(self.playlist_files):
+            track_title = make_video_title(name)
             track = ET.SubElement(tracklist, "track")
             ET.SubElement(track, "location").text = file_format.format(name)
+            # TODO: make optional? will not show metadata
+            ET.SubElement(track, "title").text = track_title
             ET.SubElement(track, "duration")
 
             extension = ET.SubElement(track, "extension")
@@ -258,6 +261,13 @@ def get_file_mdate(fpath):
 def get_file_cdate(fpath):
         ctime = os.path.getctime(fpath)
         return datetime.datetime.strptime(time.ctime(ctime), "%a %b %d %H:%M:%S %Y")
+
+
+def make_video_title(fpath):
+    '''
+    Given absolute filepath as str, return filename w/ suffix removed, and underscores replaced with spaces
+    '''
+    return pathlib.PurePath(fpath).stem.replace("_", " ")
 
 
 def duration_string(s):
@@ -363,14 +373,14 @@ def parse_args():
     )
     parser.add_argument(
         "--before",
-        "--newer-than",
+        "--older-than",
         dest="before",
         type=duration_string,
         help="Include videos created before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "--after",
-        "--older-than",
+        "--newer-than",
         dest="after",
         type=duration_string,
         help="Include videos created after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
