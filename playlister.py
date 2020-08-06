@@ -27,8 +27,8 @@ class Playlist():
     allowed_formats = None
 
     # Filter by datetime.datetime
-    filter_exclude_before = None
-    filter_exclude_after = None
+    filter_include_after = None
+    filter_include_before = None
 
 
     def __init__(self, dir, dest_file, include_formats=None, recursive=True):
@@ -51,7 +51,7 @@ class Playlist():
         self.playlist_files = []
 
 
-    def add_filters(self, exclude_terms=None, exclude_dirs=None, exclude_formats=None, exclude_before=None, exclude_after=None,
+    def add_filters(self, exclude_terms=None, exclude_dirs=None, exclude_formats=None, include_after=None, include_before=None,
     include_terms=None, include_dirs=None, include_formats=None):
         
         if exclude_terms:
@@ -75,6 +75,11 @@ class Playlist():
                 for fmt in parse_comma_list(exclude_formats):
                     self.filter_exclude_formats.add(fmt)
         
+        if include_before:
+            self.filter_include_before = include_before
+        if include_after:
+            self.filter_include_after = include_after
+        
         if include_terms:
             if not self.filter_include_terms:
                 self.filter_include_terms = include_terms
@@ -88,6 +93,7 @@ class Playlist():
             else:
                 for d in include_dirs:
                     self.filter_include_dirs.append(pathlib.Path(d).resolve())
+
         if include_formats:
             if not self.allowed_formats:
                 self.allowed_formats = set(include_formats)
@@ -155,13 +161,13 @@ class Playlist():
                 return False
         
         # Filter by file creation date
-        if self.filter_exclude_before or self.filter_exclude_after:
+        if self.filter_include_after or self.filter_include_before:
             created = get_file_cdate(fpath_str)
-            if self.filter_exclude_before:
-                if created < self.filter_exclude_before:
+            if self.filter_include_after:
+                if created < self.filter_include_after:
                     return False
-            if self.filter_exclude_after:
-                if created > self.filter_exclude_after:
+            if self.filter_include_before:
+                if created > self.filter_include_before:
                     return False
 
         return True
@@ -343,14 +349,14 @@ def parse_args():
         help="Random videos, so if max=100 and there are 200 videos, they won't be uniform"
     )
     parser.add_argument(
-        "--exclude-before",
+        "--before",
         type=duration_string,
-        help="Exclude videos modified before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Include videos created before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
-        "--exclude-after",
+        "--after",
         type=duration_string,
-        help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Include videos created after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "--exclude-formats",
@@ -387,8 +393,9 @@ def main():
         exclude_terms=args.exclude,
         exclude_dirs=None,
         exclude_formats=args.exclude_formats,
-        exclude_before=args.exclude_before,
 
+        include_before=args.before,
+        include_after=args.after,
         include_terms=args.include,
         include_dirs=None,    
     )
