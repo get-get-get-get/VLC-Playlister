@@ -74,12 +74,6 @@ class Playlist():
             else:
                 for fmt in parse_arg_to_list(exclude_formats):
                     self.filter_exclude_formats.add(fmt)
-
-        if exclude_before:
-            self.filter_exclude_before = parse_time_str_ago(exclude_before)         # Will return None if error parsing, which could be sneaky bug
-        if exclude_after:
-            self.filter_exclude_after = parse_time_str_ago(exclude_after)           # Will return None if error parsing, which could be sneaky bug
- 
         
         if include_terms:
             if not self.filter_include_terms:
@@ -250,7 +244,8 @@ def get_file_cdate(fpath):
         ctime = os.path.getctime(fpath)
         return datetime.datetime.strptime(time.ctime(ctime), "%a %b %d %H:%M:%S %Y")
 
-def parse_time_str_ago(s):
+
+def duration_string(s):
     '''
     Takes some string formatted like "2w5d" and returns a datetime.datetime object representing the time that many units ago (e.g. 2 weeks and 5 days ago).
 
@@ -302,7 +297,6 @@ def parse_time_str_ago(s):
 
 def parse_args():
 
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -350,12 +344,12 @@ def parse_args():
     )
     parser.add_argument(
         "--exclude-before",
-        default=None,
+        type=duration_string,
         help="Exclude videos modified before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "--exclude-after",
-        default=None,
+        type=duration_string,
         help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
