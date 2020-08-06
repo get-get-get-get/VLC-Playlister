@@ -304,6 +304,7 @@ def duration_string(s):
 def parse_args():
 
     parser = argparse.ArgumentParser(
+        description="Create playlists for VLC media player",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -350,11 +351,15 @@ def parse_args():
     )
     parser.add_argument(
         "--before",
+        "--newer-than",
+        dest="before",
         type=duration_string,
         help="Include videos created before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
     parser.add_argument(
         "--after",
+        "--older-than",
+        dest="after",
         type=duration_string,
         help="Include videos created after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
     )
