@@ -264,6 +264,7 @@ def duration_string(s):
     '''
     Takes some string formatted like "2w5d" and returns a datetime.datetime object representing the time that many units ago (e.g. 2 weeks and 5 days ago).
 
+    s = seconds
     m = minutes
     h = hours
     d = days
@@ -275,6 +276,7 @@ def duration_string(s):
     '''
 
     ago = {
+        "s": 0,
         "m": 0,
         "h": 0,
         "d": 0,
@@ -301,6 +303,7 @@ def duration_string(s):
     ago["d"] += 365 * ago["y"]
     
     ago_date = datetime.datetime.now() - datetime.timedelta(
+        seconds=ago["s"],
         minutes=ago["m"],
         hours=ago["h"],
         days=ago["d"],
