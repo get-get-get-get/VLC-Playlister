@@ -8,9 +8,9 @@ import sys
 import time
 import xml.etree.cElementTree as ET
 
-'''
+"""
 Creates VLC playlists
-'''
+"""
 
 
 class Playlist():
@@ -105,11 +105,11 @@ class Playlist():
 
     
     def get_all_files(self):
-        '''
-        Gets all filepaths within directories that are not filtered
+        """
+        Sets self.unfiltered_files with all filepaths within directories that are not filtered.
 
         NOTE: doesn't consider recursive option, and will always be recursive
-        '''
+        """
     
         for root_dir, dirs, filenames in os.walk(str(self.root_dir)):
             # Don't traverse excluded dirs
@@ -130,6 +130,9 @@ class Playlist():
         return
     
     def filter_files(self):
+        """
+        Sets self.playlist_files with according to instance's filter variables
+        """
         for f in self.unfiltered_files:
             if self.file_is_allowed(f):
                 self.playlist_files.append(f)
@@ -141,10 +144,11 @@ class Playlist():
         if self.max_length:
             self.playlist_files = self.playlist_files[:self.max_length]
 
-    def file_is_allowed(self, f):
-        ''' 
-        returns True if file passes all filters
-        '''
+
+    def file_is_allowed(self, f) -> bool:
+        """ 
+        Returns True if file passes all filters
+        """
 
         fpath = pathlib.PurePath(f)
 
@@ -182,6 +186,9 @@ class Playlist():
         return True
 
     def make(self):
+        """
+        Convenience function that gets files, filters them, and then saves the playlist to disk
+        """
         self.get_all_files()
         self.filter_files()
         self.make_playlist()
@@ -231,47 +238,47 @@ class Playlist():
         tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 
-def parse_comma_list(arg, normalize_case=True):
-    '''
-    Split string by commas, for args
-    '''
-    if not arg:
-        return None
+def parse_comma_list(arg, normalize_case=True) -> list:
+    """
+    Return list by splitting string with comma
 
+    Keyword arguments:
+    normalize_case -- return lowercased strings 
+    """
     if not normalize_case:
         parsed = [x.strip() for x in arg.split(",") if x != ""]
     else:
         parsed = [x.strip().lower() for x in arg.split(",")]
     return parsed
 
-def comma_list(s):
+def comma_list(s) -> list:
     return parse_comma_list(s, normalize_case=False)
 
-def comma_list_cased(s):
+def comma_list_cased(s) -> list:
     return parse_comma_list(s, normalize_case=True)
 
 
 # datetime of last file modification
-def get_file_mdate(fpath):
+def get_file_mdate(fpath) -> datetime.datetime:
         mtime = os.path.getmtime(fpath)
         return datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
 
 
 # datetime of file creation
-def get_file_cdate(fpath):
+def get_file_cdate(fpath) -> datetime.datetime:
         ctime = os.path.getctime(fpath)
         return datetime.datetime.strptime(time.ctime(ctime), "%a %b %d %H:%M:%S %Y")
 
 
-def make_video_title(fpath):
-    '''
+def make_video_title(fpath) -> str:
+    """
     Given absolute filepath as str, return filename w/ suffix removed, and underscores replaced with spaces
-    '''
+    """
     return pathlib.PurePath(fpath).stem.replace("_", " ")
 
 
-def duration_string(s):
-    '''
+def duration_string(s) -> datetime.datetime:
+    """
     Takes some string formatted like "2w5d" and returns a datetime.datetime object representing the time that many units ago (e.g. 2 weeks and 5 days ago).
 
     s = seconds
@@ -283,7 +290,7 @@ def duration_string(s):
 
     Other letters cause error. If nothing precedes letter that can be cast as int, it will be 1 (e.g. "2dy" is 2 days 1 year. "www" is 3 weeks)
     Not case sensitive
-    '''
+    """
 
     ago = {
         "s": 0,
@@ -299,9 +306,9 @@ def duration_string(s):
         try:
             __ = int(c)
             int_buf += c
-        except ValueError:
+        except ValueError as e:
             if ago.get(c, False) is False:
-                return None                 # TODO: return error
+                raise e            
             if int_buf == "":
                 amt = 1
             else:
@@ -323,7 +330,7 @@ def duration_string(s):
     return ago_date
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description="Create playlists for VLC media player",
