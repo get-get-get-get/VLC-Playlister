@@ -64,7 +64,20 @@ class Playlist():
 
     def add_filters(self, exclude_terms=None, exclude_dirs=None, exclude_formats=None, include_after=None, include_before=None,
     include_terms=None, include_dirs=None, include_formats=None):
-        
+        """
+        Add restriction on what files are included in Playlist
+
+        Keyword arguments:
+        exclude_terms -- list of strings that playlist files must not contain in their filepath
+        exclude_dirs -- list/set of strings of dir paths that will not be included in search for files
+        exclude_formats -- list/set of strings representing file formats to exclude from playlist
+        include_terms -- list of strings that playlist files must contain in their filepath
+        include_dirs -- list of strings of dir paths that files must be under to include
+        include_formats -- list/set of strings representing file formats to include in playlist
+        include_after -- datetime.datetime of oldest modification date allowed for included files
+        include_before -- datetime.datetime of most recent modification date allowed for included files
+        """
+
         if exclude_terms:
             if not self.filter_exclude_terms:
                 self.filter_exclude_terms = exclude_terms
