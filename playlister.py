@@ -4,7 +4,6 @@ import datetime
 import os
 import pathlib
 import random
-import sys
 import time
 import xml.etree.cElementTree as ET
 
@@ -17,7 +16,6 @@ class Playlist():
 
     default_formats = [".avi",".mp4",".mkv"]
     playlist_extension = ".xspf"
-    recursive = True
     max_length = None
     randomize = False
 
@@ -33,11 +31,21 @@ class Playlist():
 
 
     def __init__(self, dir, dest_file, include_formats=None, recursive=True):
+        """ 
+        Instantiate Playlist
 
+        Keyword arguments:
+        include_formats -- list or set of file formats to include in playlist. 
+        recursive -- include subdirectories in search
+        """
+
+        # Possible errors (TODO: raise actual error)
         if not os.path.isdir(dir):
             return None                 # TODO: make proper error
         if os.path.isdir(dest_file):
             return None                 # TODO: make proper error
+
+
         self.root_dir = pathlib.Path(dir).resolve()
         self.dest_path = pathlib.Path(dest_file).resolve()
         if self.dest_path.suffix != '':
@@ -47,6 +55,8 @@ class Playlist():
             self.allowed_formats = set(include_formats)
         else:
             self.allowed_formats = set(self.default_formats)
+        
+        self.recursive = recursive
         
         self.unfiltered_files = []
         self.playlist_files = []
