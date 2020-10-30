@@ -26,7 +26,6 @@ class Playlist():
     filter_exclude_formats = None
     filter_include_terms = None
     filter_include_dirs = None
-    allowed_formats = None
 
     # Filter by datetime.datetime
     filter_include_after = None
@@ -279,7 +278,7 @@ def make_video_title(fpath) -> str:
 
 def duration_string(s) -> datetime.datetime:
     """
-    Takes some string formatted like "2w5d" and returns a datetime.datetime object representing the time that many units ago (e.g. 2 weeks and 5 days ago).
+    Returns datetime.datetime from parsing some string formatted like "2w5d" (2 weeks 5 days) to represent period of time
 
     s = seconds
     m = minutes
@@ -331,6 +330,9 @@ def duration_string(s) -> datetime.datetime:
 
 
 def parse_args() -> argparse.Namespace:
+    """
+    Returns argarse.Namespace representing command line input
+    """
 
     parser = argparse.ArgumentParser(
         description="Create playlists for VLC media player",
@@ -405,13 +407,10 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def main():
-    
-    args = parse_args()
-
-    # Instantiate 
-    directory = args.directory
-    output = args.output
+def new_playlist_from_args(args) -> Playlist:
+    """
+    Returns Playlist instantiated from parsed command-line arguments
+    """
 
     if args.formats:
         formats = args.formats
@@ -421,7 +420,8 @@ def main():
         formats = ["." + fmt.lstrip(".") for fmt in formats]   
     else:
         formats = None
-    playlist = Playlist(directory, output, include_formats=formats)
+
+    playlist = Playlist(args.directory, args.output, include_formats=formats)
 
     playlist.add_filters(
         exclude_terms=args.exclude,
@@ -437,8 +437,14 @@ def main():
     playlist.randomize = args.random
     playlist.max_length = args.max_length
     
-    playlist.make()
+    return playlist
 
+def main():
+    
+    args = parse_args()
+    playlist = new_playlist_from_args(args)
+    
+    playlist.make()
 
     # Make .xspf playlist
     video_count = len(playlist.playlist_files)
