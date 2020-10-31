@@ -216,6 +216,9 @@ class Playlist():
         self.make_playlist()
 
     def make_playlist(self):
+        """
+        Format Playlist in VLC-compatible XML and save to file.
+        """
 
         # Create 'playlist' as root Element
         playlist = ET.Element("playlist")
