@@ -62,6 +62,13 @@ def matches_none(filters: list, filename: str) -> bool:
     return True
 
 
+def matches_any(filters: list, filename: str) -> bool:
+    for filt in filters:
+        if filt.matches(filename):
+            return True
+    return False
+
+
 def does_not_match_all(filters: list, filename: str) -> bool:
     if matches_all(filters, filename):
         return False

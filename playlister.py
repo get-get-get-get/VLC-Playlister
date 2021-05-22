@@ -269,7 +269,7 @@ def new_playlist_from_args(args) -> Playlist:
     if len(must_match_filters) > 0:
         filter_set.add_include_filter(filters.Filter(filters.matches_all, must_match_filters))
     if len(must_not_match_filters) > 0:
-        filter_set.add_exclude_filter(filters.Filter(filters.matches_none, must_not_match_filters))
+        filter_set.add_exclude_filter(filters.Filter(filters.matches_any, must_not_match_filters))
     playlist.use_filter_set(filter_set)
 
     playlist.randomize = args.random
