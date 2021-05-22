@@ -102,6 +102,11 @@ def is_longer_than(seconds: int, filename: str) -> bool:
 
 def is_shorter_than(seconds: int, filename: str) -> bool:
     length = ffprobe.get_video_length(filename)
+
     if length >= seconds or length == 0:
         return False
     return True
+
+
+def has_audio(whatever: str, filename: str) -> bool:
+    return ffprobe.file_has_audio(filename)

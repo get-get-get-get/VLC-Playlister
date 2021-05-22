@@ -248,6 +248,10 @@ def new_playlist_from_args(args) -> Playlist:
     if len(time_filters) > 0:
         must_match_filters.append(time_filters)
 
+    # Audio filter
+    if args.require_audio:
+        must_match_filters.append(filters.Filter(filters.has_audio, ""))
+
     # Length filters
     length_filters = []
     if args.max_length:
