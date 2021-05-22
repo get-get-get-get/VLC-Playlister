@@ -4,14 +4,13 @@ import pathlib
 import playlister
 
 
-class FilterSet():
+class FilterSet:
     def __init__(self):
         self.include_filters = []
         self.exclude_filters = []
 
     def __len__(self):
         return len(self.include_filters) + len(self.exclude_filters)
-
 
     def matches(self, filename: str) -> bool:
         keep = False
@@ -25,14 +24,14 @@ class FilterSet():
                 break
         return keep
 
-    def add_include_filter(self, filter):
-        self.include_filters.append(filter)
+    def add_include_filter(self, filt):
+        self.include_filters.append(filt)
 
-    def add_exclude_filter(self, filter):
-        self.exclude_filters.append(filter)
+    def add_exclude_filter(self, filt):
+        self.exclude_filters.append(filt)
 
 
-class Filter():
+class Filter:
     def __init__(self, filter_func, param):
         self.filter_func = filter_func
         self.param = param
