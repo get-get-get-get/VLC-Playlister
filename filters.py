@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 
+import ffprobe
 import fileinfo
 import playlister
 
@@ -90,3 +91,17 @@ def is_newer_than(date: datetime.datetime, filename: str) -> bool:
     if fileinfo.get_file_cdate(filename) >= date:
         return True
     return False
+
+
+def is_longer_than(seconds: int, filename: str) -> bool:
+    length = ffprobe.get_video_length(filename)
+    if length <= seconds or length == 0:
+        return False
+    return True
+
+
+def is_shorter_than(seconds: int, filename: str) -> bool:
+    length = ffprobe.get_video_length(filename)
+    if length >= seconds or length == 0:
+        return False
+    return True

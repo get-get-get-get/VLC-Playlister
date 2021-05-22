@@ -240,8 +240,19 @@ def new_playlist_from_args(args) -> Playlist:
         time_filters.add_include_filter(filters.Filter(filters.is_older_than, args.before))
     if args.after:
         time_filters.add_include_filter(filters.Filter(filters.is_newer_than, args.after))
-    must_match_filters.append(time_filters)
+    if len(time_filters) > 0:
+        must_match_filters.append(time_filters)
 
+    # Length filters
+    length_filters = filters.FilterSet()
+    if args.max_length:
+        length_filters.add_include_filter(filters.Filter(filters.is_shorter_than, args.max_length))
+    if args.min_length:
+        length_filters.add_include_filter(filters.Filter(filters.is_longer_than, args.min_length))
+    if len(length_filters) > 0:
+        must_match_filters.append(time_filters)
+
+    # Add filters to Playlister
     if len(must_match_filters) > 0:
         filter_set.add_include_filter(filters.Filter(filters.matches_all, must_match_filters))
     if len(must_not_match_filters) > 0:
