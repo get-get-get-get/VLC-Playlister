@@ -4,7 +4,6 @@ import datetime
 import os
 import pathlib
 import random
-import time
 import xml.etree.cElementTree as ET
 
 import filters
@@ -14,13 +13,13 @@ Creates VLC playlists
 """
 
 
-class Playlist():
+class Playlist:
     default_formats = [".avi", ".mp4", ".mkv"]
     playlist_extension = ".xspf"
     max_length = None
     randomize = False
 
-    def __init__(self, dir, dest_file, include_formats=None, recursive=True):
+    def __init__(self, directory, dest_file):
         """ 
         Instantiate Playlist
 
@@ -29,23 +28,16 @@ class Playlist():
         recursive -- include subdirectories in search
         """
 
-        # Possible errors (TODO: raise actual error)
-        if not os.path.isdir(dir):
-            return None  # TODO: make proper error
-        if os.path.isdir(dest_file):
-            return None  # TODO: make proper error
-
-        self.root_dir = pathlib.Path(dir).resolve()
+        self.root_dir = pathlib.Path(directory).resolve()
         self.dest_path = pathlib.Path(dest_file).resolve()
         if self.dest_path.suffix != '':
             self.playlist_extension = self.dest_path.suffix
 
         self.filter_set = filters.FilterSet()
-
         self.unfiltered_files = []
         self.playlist_files = []
 
-    def use_filter_set(self, filter_set: filters.FilterSet):
+    def use_filter_set(self, filter_set):
         """
         Add restriction on what files are included in Playlist
 
@@ -116,19 +108,13 @@ class Playlist():
         """
 
         for root_dir, dirs, filenames in os.walk(str(self.root_dir)):
-            # Don't traverse excluded dirs
-            if self.filter_exclude_dirs:
-                dirs[:] = [d for d in dirs if pathlib.Path(d).resolve() not in self.filter_exclude_dirs]
-            # Maybe don't do it this way
-            if self.filter_include_dirs:
-                allowed = []
-                for d in dirs:
-                    d_pure = pathlib.Path(os.path.join(root_dir, d)).resolve()
-                    for inc_dir in self.filter_include_dirs:
-                        if inc_dir == d_pure or inc_dir in d_pure.parents:
-                            allowed.append(d)
-                            break
-
+            # allowed = []
+            # for d in dirs:
+            #     d_pure = pathlib.Path(os.path.join(root_dir, d)).resolve()
+            # for inc_dir in self.filter_include_dirs:
+            #     if inc_dir == d_pure or inc_dir in d_pure.parents:
+            #         allowed.append(d)
+            #         break
             for fname in filenames:
                 self.unfiltered_files.append(
                     pathlib.PurePath(os.path.abspath(os.path.join(root_dir, fname))).as_posix())
@@ -139,7 +125,7 @@ class Playlist():
         Sets self.playlist_files with according to instance's filter variables
         """
         for f in self.unfiltered_files:
-            if self.filter_set.matches(f):
+            if self.file_is_allowed(f):
                 self.playlist_files.append(f)
 
         if self.randomize:
@@ -153,41 +139,8 @@ class Playlist():
         """ 
         Returns True if file passes all filters
         """
-
         fpath = pathlib.PurePath(f)
-
-        # Filter by file extension
-        if fpath.suffix not in self.allowed_formats:
-            return False
-        if self.filter_exclude_formats:
-            if fpath.suffix in self.filter_exclude_formats:
-                return False
-
-        # Filter by key terms
-        fpath_str = str(fpath)
-        if self.filter_exclude_terms:
-            for term in self.filter_exclude_terms:
-                if term in fpath_str.lower():
-                    return False
-        if self.filter_include_terms:
-            included = False
-            for term in self.filter_include_terms:
-                if term in fpath_str:
-                    included = True
-            if not included:
-                return False
-
-        # Filter by file creation date
-        if self.filter_include_after or self.filter_include_before:
-            created = get_file_cdate(fpath_str)
-            if self.filter_include_after:
-                if created < self.filter_include_after:
-                    return False
-            if self.filter_include_before:
-                if created > self.filter_include_before:
-                    return False
-
-        return True
+        return self.filter_set.matches(str(fpath))
 
     def make(self):
         """
@@ -271,18 +224,6 @@ def comma_list_cased(s: str) -> list:
     return parse_comma_list(s, normalize_case=True)
 
 
-# datetime of last file modification
-def get_file_mdate(fpath: str) -> datetime.datetime:
-    mtime = os.path.getmtime(fpath)
-    return datetime.datetime.strptime(time.ctime(mtime), "%a %b %d %H:%M:%S %Y")
-
-
-# datetime of file creation
-def get_file_cdate(fpath: str) -> datetime.datetime:
-    ctime = os.path.getctime(fpath)
-    return datetime.datetime.strptime(time.ctime(ctime), "%a %b %d %H:%M:%S %Y")
-
-
 def make_video_title(fpath: str) -> str:
     """
     Given absolute filepath as str, return filename w/ suffix removed, and underscores replaced with spaces
@@ -292,7 +233,7 @@ def make_video_title(fpath: str) -> str:
 
 def duration_string(s: str) -> datetime.datetime:
     """
-    Returns datetime.datetime from parsing some string formatted like "2w5d" (2 weeks 5 days) to represent period of time
+    Returns datetime.datetime by parsing some string formatted like "2w5d" (2 weeks 5 days) to represent period of time
 
     s = seconds
     m = minutes
@@ -301,7 +242,8 @@ def duration_string(s: str) -> datetime.datetime:
     w = weeks
     y = years
 
-    Other letters cause error. If nothing precedes letter that can be cast as int, it will be 1 (e.g. "2dy" is 2 days 1 year. "www" is 3 weeks)
+    Other letters cause error. If nothing precedes letter that can be cast as int, it will be 1
+    (e.g. "2dy" is 2 days 1 year. "www" is 3 weeks)
     Not case sensitive
     """
 
@@ -371,6 +313,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-x",
         "--exclude",
+        default=None,
         type=comma_list,
         help="Comma-separated list of strings to censor"
     )
@@ -399,20 +342,23 @@ def parse_args() -> argparse.Namespace:
         "--older-than",
         dest="before",
         type=duration_string,
-        help="Include videos created before this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Include videos created before this age. Format as [int][unit]..., where [unit] is exactly one of [h ("
+             "hour), d (day), w (week), m (month)] "
     )
     parser.add_argument(
         "--after",
         "--newer-than",
         dest="after",
         type=duration_string,
-        help="Include videos created after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Include videos created after this age. Format as [int][unit]..., where [unit] is exactly one of [h ("
+             "hour), d (day), w (week), m (month)] "
     )
     parser.add_argument(
         "--exclude-formats",
         default=None,
         type=comma_list_stripped,
-        help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h (hour), d (day), w (week), m (month)]"
+        help="Exclude videos modified after this age. Format as [int][unit]..., where [unit] is exactly one of [h ("
+             "hour), d (day), w (week), m (month)] "
     )
     parser.add_argument(
         "-v",
@@ -454,15 +400,17 @@ def new_playlist_from_args(args) -> Playlist:
         must_match_filters.append(filters.Filter(filters.contains, args.include))
 
     # Time filters
-    time_filters = filters.FilterSet
+    time_filters = filters.FilterSet()
     if args.before:
         time_filters.add_include_filter(filters.Filter(filters.is_older_than, args.before))
     if args.after:
-        time_filters.add_include_filter(filters.Filter(filters.is_newer_than, args.before))
+        time_filters.add_include_filter(filters.Filter(filters.is_newer_than, args.after))
     must_match_filters.append(time_filters)
 
-    filter_set.add_include_filter(filters.matches_all, must_match_filters)
-    filter_set.add_exclude_filter(filters.matches_none, must_not_match_filters)
+    if len(must_match_filters) > 0:
+        filter_set.add_include_filter(filters.Filter(filters.matches_all, must_match_filters))
+    if len(must_not_match_filters) > 0:
+        filter_set.add_exclude_filter(filters.Filter(filters.matches_none, must_not_match_filters))
     playlist.use_filter_set(filter_set)
 
     playlist.randomize = args.random

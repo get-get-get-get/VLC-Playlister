@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 
+import fileinfo
 import playlister
 
 
@@ -19,6 +20,8 @@ class FilterSet:
                 keep = True
                 break
         for filt in self.exclude_filters:
+            if len(self.exclude_filters) == 0:
+                break
             if filt.matches(filename):
                 keep = False
                 break
@@ -66,7 +69,7 @@ def does_not_match_all(filters: list, filename: str) -> bool:
 
 def contains(terms: list, filename: str) -> bool:
     for param in terms:
-        if param in filename:
+        if param.lower() in filename.lower():
             return True
     return False
 
@@ -78,12 +81,12 @@ def has_file_extension(extensions: list, filename: str) -> bool:
 
 
 def is_older_than(date: datetime.datetime, filename: str) -> bool:
-    if playlister.get_file_cdate(filename) <= date:
+    if fileinfo.get_file_cdate(filename) <= date:
         return True
     return False
 
 
 def is_newer_than(date: datetime.datetime, filename: str) -> bool:
-    if playlister.get_file_cdate(filename) >= date:
+    if fileinfo.get_file_cdate(filename) >= date:
         return True
     return False
