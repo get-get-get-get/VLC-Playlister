@@ -9,7 +9,11 @@ class FilterSet():
         self.include_filters = []
         self.exclude_filters = []
 
-    def should_keep(self, filename: str) -> bool:
+    def __len__(self):
+        return len(self.include_filters) + len(self.exclude_filters)
+
+
+    def is_allowed(self, filename: str) -> bool:
         keep = False
         for filt in self.include_filters:
             if filt.matches(filename):
@@ -51,6 +55,7 @@ def matches_none(filters: list, filename: str) -> bool:
         if filt.matches(filename):
             return False
     return True
+
 
 def not_matches_all(filters: list, filename: str) -> bool:
     if matches_all(filters, filename):
