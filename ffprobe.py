@@ -4,8 +4,10 @@ import json
 import time
 
 
-def get_video_info(filename: str, ffprobe_path: str) -> dict:
-    cmd = shlex.split(f"{ffprobe_path} -v quiet -print_format json -show_streams '{filename}'")
+FFPROBE_PATH = "x:/ffprobe.exe"
+
+def get_video_info(filename: str) -> dict:
+    cmd = shlex.split(f"{FFPROBE_PATH} -v quiet -print_format json -show_streams '{filename}'")
     # run the ffprobe process, decode stdout into utf-8 & convert to JSON
     result = subprocess.run(cmd, capture_output=True)
     if result.returncode != 0:
@@ -23,7 +25,7 @@ def get_video_info(filename: str, ffprobe_path: str) -> dict:
 
 # Get video length in seconds
 def get_video_length(filename: str) -> int:
-    info = get_video_info(filename, FFPROBE_PATH)
+    info = get_video_info(filename)
     if not info:
         return 0
 
@@ -50,5 +52,5 @@ def parse_mkv_length(ffprobe_output: dict) -> int:
 def parse_mp4_length(ffprobe_output: dict) -> int:
     for stream in ffprobe_output["streams"]:
         if stream.get("duration", False):
-            return int(stream["duration"])
+            return int(stream["duration"].split(".")[0])
     return 0

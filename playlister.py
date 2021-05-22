@@ -4,6 +4,8 @@ import pathlib
 import random
 import xml.etree.cElementTree as ET
 
+import cmd
+import ffprobe
 import filters
 from cmd import parse_args
 
@@ -214,6 +216,9 @@ def new_playlist_from_args(args) -> Playlist:
     must_match_filters = []
     must_not_match_filters = []
 
+    if args.ffprobe:
+        ffprobe.FFPROBE_PATH = args.ffprobe
+
     # File extension filters
     if args.formats:
         formats = args.formats
@@ -244,13 +249,17 @@ def new_playlist_from_args(args) -> Playlist:
         must_match_filters.append(time_filters)
 
     # Length filters
-    length_filters = filters.FilterSet()
+    length_filters = []
     if args.max_length:
-        length_filters.add_include_filter(filters.Filter(filters.is_shorter_than, args.max_length))
+        length_filters.append(filters.Filter(filters.is_shorter_than, args.max_length))
     if args.min_length:
-        length_filters.add_include_filter(filters.Filter(filters.is_longer_than, args.min_length))
+        length_filters.filter(filters.Filter(filters.is_longer_than, args.min_length))
     if len(length_filters) > 0:
-        must_match_filters.append(time_filters)
+        if args.max_length && args.min_length:
+            must_match_filters.append(length_filters[0])
+            must_match_filters.append(length_filters[1])
+        else:
+            must_match_filters.append(length_filters[0])
 
     # Add filters to Playlister
     if len(must_match_filters) > 0:
@@ -260,13 +269,13 @@ def new_playlist_from_args(args) -> Playlist:
     playlist.use_filter_set(filter_set)
 
     playlist.randomize = args.random
-    playlist.max_length = args.max_length
+    playlist.max_length = args.max_videos
 
     return playlist
 
 
 def main():
-    args = parse_args()
+    args = cmd.Arguments().parse_args()
     playlist = new_playlist_from_args(args)
 
     playlist.make()
