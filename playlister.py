@@ -255,7 +255,7 @@ def new_playlist_from_args(args) -> Playlist:
     if args.min_length:
         length_filters.filter(filters.Filter(filters.is_longer_than, args.min_length))
     if len(length_filters) > 0:
-        if args.max_length && args.min_length:
+        if args.max_length and args.min_length:
             must_match_filters.append(length_filters[0])
             must_match_filters.append(length_filters[1])
         else:
