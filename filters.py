@@ -13,14 +13,16 @@ class FilterSet():
         return len(self.include_filters) + len(self.exclude_filters)
 
 
-    def is_allowed(self, filename: str) -> bool:
+    def matches(self, filename: str) -> bool:
         keep = False
         for filt in self.include_filters:
             if filt.matches(filename):
                 keep = True
+                break
         for filt in self.exclude_filters:
             if filt.matches(filename):
                 keep = False
+                break
         return keep
 
     def add_include_filter(self, filter):
@@ -57,7 +59,7 @@ def matches_none(filters: list, filename: str) -> bool:
     return True
 
 
-def not_matches_all(filters: list, filename: str) -> bool:
+def does_not_match_all(filters: list, filename: str) -> bool:
     if matches_all(filters, filename):
         return False
     return True
