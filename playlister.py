@@ -15,7 +15,7 @@ Creates VLC playlists
 
 
 class Playlist:
-    default_formats = [".avi", ".mp4", ".mkv"]
+    default_formats = [".avi", ".mp4", ".mkv", ".mov", ".wmv"]
     playlist_extension = ".xspf"
     max_length = None
     randomize = False
@@ -125,9 +125,21 @@ class Playlist:
         """
         Sets self.playlist_files with according to instance's filter variables
         """
+        added_count = 0
+        skipped_count = 0
+        print(f"filtering {len(self.unfiltered_files)} files...")
         for f in self.unfiltered_files:
             if self.file_is_allowed(f):
+                added_count += 1
+                if added_count % 5 == 0:
+                    print("+", end="", flush=True)
                 self.playlist_files.append(f)
+            else:
+                skipped_count += 1
+                if skipped_count % 5 == 0:
+                    print("_", end="", flush=True)
+            if (added_count + skipped_count) % 200 == 0:
+                print()
 
         if self.randomize:
             random.seed()
