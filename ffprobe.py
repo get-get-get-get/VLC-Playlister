@@ -10,6 +10,9 @@ examined_files = {}
 
 
 def get_video_info(filename: str) -> dict:
+    if examined_files.get(filename, False):
+        return examined_files[filename]
+
     cmd = shlex.split(f"{FFPROBE_PATH} -v quiet -print_format json -show_streams")
     cmd.append(filename)    # avoid quotation issues in shlex by just appending
     # run the ffprobe process, decode stdout into utf-8 & convert to JSON
@@ -19,7 +22,7 @@ def get_video_info(filename: str) -> dict:
         return {}
 
     ffp_json = json.loads(result.stdout.decode('utf-8'))
-
+    examined_files[filename] = ffp_json
     # # testing
     # import pprint
     # pp = pprint.PrettyPrinter(indent=2)
@@ -29,24 +32,13 @@ def get_video_info(filename: str) -> dict:
 
 # Get video length in seconds
 def get_video_length(filename: str) -> int:
-    if examined_files.get(filename, False):
-        if filename.endswith("mkv"):
-            length = parse_mkv_length(examined_files[filename])
-        elif filename.endswith("mp4"):
-            length = parse_mp4_length(examined_files[filename])
-        else:
-            length = 0
-        return length
-
-    cmd = shlex.split(
-        f"{FFPROBE_PATH} -v quiet -print_format json -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '{filename}'")
-    result = subprocess.run(cmd, capture_output=True)
-    if result.returncode != 0:
-        print(f"ffprobe failed to parse {filename}")
-        return 0
-
-    seconds = int(result.stdout.decode('utf-8').split(".")[0])
-    return seconds
+    if filename.endswith("mkv"):
+        length = parse_mkv_length(get_video_info(filename))
+    elif filename.endswith("mp4"):
+        length = parse_mp4_length(get_video_info(filename))
+    else:
+        length = 0
+    return length
 
 
 def parse_mkv_length(ffprobe_output: dict) -> int:
@@ -57,9 +49,12 @@ def parse_mkv_length(ffprobe_output: dict) -> int:
         if stream["tags"].get("DURATION", False):
             dur = stream["tags"]["DURATION"]
             break
-    t = time.strptime(dur.split(".")[0], "%H:%M:%S")
-    seconds = (t.tm_sec) + (t.tm_min * 60) + (t.tm_hour * 360)
-    return seconds
+    try:
+        t = time.strptime(dur.split(".")[0], "%H:%M:%S")
+        seconds = (t.tm_sec) + (t.tm_min * 60) + (t.tm_hour * 360)
+        return seconds
+    except ValueError:
+        return 0
 
 
 def parse_mp4_length(ffprobe_output: dict) -> int:
@@ -72,9 +67,7 @@ def parse_mp4_length(ffprobe_output: dict) -> int:
 
 
 def file_has_audio(filename: str) -> bool:
-    if not examined_files.get(filename, False):
-        examined_files[filename] = get_video_info(filename)
-    ffprobe_output = examined_files[filename]
+    ffprobe_output = get_video_info(filename)
     if not ffprobe_output.get("streams", False):
         return False
     for stream in ffprobe_output["streams"]:

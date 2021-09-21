@@ -240,6 +240,7 @@ def new_playlist_from_args(args) -> Playlist:
         formats = [fmt for fmt in formats]
     else:
         formats = Playlist.default_formats
+    formats = list({"." + ext.strip(".").lower() for ext in formats})
     must_match_filters.append(filters.Filter(filters.has_file_extension, formats))
 
     if args.exclude_formats:
